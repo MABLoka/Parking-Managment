@@ -1,14 +1,26 @@
 package system;
 
-public interface managers {
+public abstract class managers {
 	int id;
 	String name;
 	String email;
 	
-	protected verfiy(client id);
-	protected addlot();
-	protected enablelot();
-	protected disablelot();
-	protected enablespace();
-	protected disablespace();
+	protected void verfiy(client id) {
+		
+	}
+	protected void addlot() {
+		
+	}
+	protected void enablelot() {
+		
+	}
+	protected void disablelot() {
+		
+	}
+	protected void enablespace() {
+		
+	}
+	protected void disablespace() {
+		
+	}
 }
