@@ -24,3 +24,11 @@ public abstract class managers {
 		
 	}
 }
+
+class supermanager extends managers{
+	
+}
+
+
+
+
