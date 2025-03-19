@@ -1,4 +1,4 @@
-TODO: 
+TODO (Write names next to what you'll be working on): 
 
 Programming:
 - Implement Parkinglot.java
