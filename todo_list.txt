@@ -3,9 +3,9 @@ TODO:
 Programming:
 - Implement Parkinglot.java
 - Implement Booking.java
-- Implement Sensor.java
+- Implement Sensor.java (This is mostly backend, lots of dummy variables will be here)
 - Implement Parkingspace.java
-- Implement 4 more design patterns (Singleton and Factory Design already implemented)
+- Implement 4 more design patterns (Singleton and Factory Design already implemented, other ones to implement: Adapter pattern [for example, from GUI to booking, we can have an interface and should be able to use .book() method], Proxy pattern [for viewing the object Parkinglot], State Pattern [If Parkinglot is occupied, send message (this would be like an if-statement) to whoever is accessing it, should say something like "Invalid Selection"], Bridge [client, booking, so we always have the client information])
 
 Diagrams:
 - Updated class diagram
