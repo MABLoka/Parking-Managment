@@ -412,7 +412,7 @@ class ManagerLoginPanel extends JPanel {
 							if(nextRecord[4].equals("Y")) {
 								frame.manager = SuperManager.getInstance();
 							} else {
-								
+								frame.manager = Manager.getInstance(Integer.parseInt(nextRecord[1]) , nextRecord[0], nextRecord[2]);
 							}
 							frame.switchTo("ManagerMain");
 							success = true;
@@ -451,26 +451,43 @@ class ClientMainPanel extends JPanel {
     public ClientMainPanel(User frame) {
         setLayout(new BorderLayout());
 
-        // Sidebar
+        // Sidebar with 6 buttons for 6 panels
         JPanel sidebar = new JPanel();
-        sidebar.setLayout(new GridLayout(3, 1));
-        JButton btnPanel1 = new JButton("Panel 1");
-        JButton btnPanel2 = new JButton("Panel 2");
+        sidebar.setLayout(new GridLayout(6, 1));  // Set grid to have 6 rows
+        JButton btnPanel1 = new JButton("Client Panel 1");
+        JButton btnPanel2 = new JButton("Client Panel 2");
+        JButton btnPanel3 = new JButton("Client Panel 3");
+        JButton btnPanel4 = new JButton("Client Panel 4");
+        JButton btnPanel5 = new JButton("Client Panel 5");
+        JButton btnPanel6 = new JButton("Client Panel 6");
         JButton btnLogout = new JButton("Logout");
+
         sidebar.add(btnPanel1);
         sidebar.add(btnPanel2);
+        sidebar.add(btnPanel3);
+        sidebar.add(btnPanel4);
+        sidebar.add(btnPanel5);
+        sidebar.add(btnPanel6);
         sidebar.add(btnLogout);
 
-        // Content panel with CardLayout
+        // Content panel with CardLayout to hold the 6 panels
         cardLayout = new CardLayout();
         panelContainer = new JPanel(cardLayout);
-        panelContainer.add(new Panel1(), "Panel1");
-        panelContainer.add(new Panel2(), "Panel2");
-        
-        
-        // Button Actions
-        btnPanel1.addActionListener(e -> cardLayout.show(panelContainer, "Panel1"));
-        btnPanel2.addActionListener(e -> cardLayout.show(panelContainer, "Panel2"));
+        panelContainer.add(new ClientPanel1(), "ClientPanel1");
+        panelContainer.add(new ClientPanel2(), "ClientPanel2");
+        panelContainer.add(new ClientPanel3(), "ClientPanel3");
+        panelContainer.add(new ClientPanel4(), "ClientPanel4");
+        panelContainer.add(new ClientPanel5(), "ClientPanel5");
+        panelContainer.add(new ClientPanel6(), "ClientPanel6");
+
+        // Button Actions to switch between panels
+        btnPanel1.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel1"));
+        btnPanel2.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel2"));
+        btnPanel3.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel3"));
+        btnPanel4.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel4"));
+        btnPanel5.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel5"));
+        btnPanel6.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel6"));
+
         btnLogout.addActionListener(e -> frame.switchTo("ClientLogin")); // Switch back to login
 
         add(sidebar, BorderLayout.WEST);
@@ -478,39 +495,107 @@ class ClientMainPanel extends JPanel {
     }
 }
 
+// Example Client Panel 1
+class ClientPanel1 extends JPanel {
+    public ClientPanel1() {
+        setBackground(Color.RED);
+        add(new JLabel("This is Client Panel 1"));
+    }
+}
+
+// Example Client Panel 2
+class ClientPanel2 extends JPanel {
+    public ClientPanel2() {
+        setBackground(Color.GREEN);
+        add(new JLabel("This is Client Panel 2"));
+    }
+}
+
+// Example Client Panel 3
+class ClientPanel3 extends JPanel {
+    public ClientPanel3() {
+        setBackground(Color.BLUE);
+        add(new JLabel("This is Client Panel 3"));
+    }
+}
+
+// Example Client Panel 4
+class ClientPanel4 extends JPanel {
+    public ClientPanel4() {
+        setBackground(Color.YELLOW);
+        add(new JLabel("This is Client Panel 4"));
+    }
+}
+
+// Example Client Panel 5
+class ClientPanel5 extends JPanel {
+    public ClientPanel5() {
+        setBackground(Color.PINK);
+        add(new JLabel("This is Client Panel 5"));
+    }
+}
+
+// Example Client Panel 6
+class ClientPanel6 extends JPanel {
+    public ClientPanel6() {
+        setBackground(Color.ORANGE);
+        add(new JLabel("This is Client Panel 6"));
+    }
+}
+
+
 
 //-------- Manager Main Panel with Sidebar --------
 class ManagerMainPanel extends JPanel {
- private CardLayout cardLayout;
- private JPanel panelContainer;
 
- public ManagerMainPanel(User frame) {
-     setLayout(new BorderLayout());
+    private CardLayout cardLayout;
+    private JPanel panelContainer;
 
-     // Sidebar
-     JPanel sidebar = new JPanel();
-     sidebar.setLayout(new GridLayout(3, 1));
-     JButton btnPanel1 = new JButton("Panel 1");
-     JButton btnPanel2 = new JButton("Panel 2");
-     JButton btnLogout = new JButton("Logout");
-     sidebar.add(btnPanel1);
-     sidebar.add(btnPanel2);
-     sidebar.add(btnLogout);
+    public ManagerMainPanel(User frame) {
+        setLayout(new BorderLayout());
 
-     // Content panel with CardLayout
-     cardLayout = new CardLayout();
-     panelContainer = new JPanel(cardLayout);
-     panelContainer.add(new Panel1(), "Panel1");
-     panelContainer.add(new Panel2(), "Panel2");
+        // Sidebar with 6 buttons for 6 panels
+        JPanel sidebar = new JPanel();
+        sidebar.setLayout(new GridLayout(6, 1));  // Set grid to have 6 rows
+        JButton btnPanel1 = new JButton("Panel 1");
+        JButton btnPanel2 = new JButton("Panel 2");
+        JButton btnPanel3 = new JButton("Panel 3");
+        JButton btnPanel4 = new JButton("Panel 4");
+        JButton btnPanel5 = new JButton("Panel 5");
+        JButton btnPanel6 = new JButton("Panel 6");
+        JButton btnLogout = new JButton("Logout");
 
-     // Button Actions
-     btnPanel1.addActionListener(e -> cardLayout.show(panelContainer, "Panel1"));
-     btnPanel2.addActionListener(e -> cardLayout.show(panelContainer, "Panel2"));
-     btnLogout.addActionListener(e -> frame.switchTo("ManagerLogin")); // Switch back to login
+        sidebar.add(btnPanel1);
+        sidebar.add(btnPanel2);
+        sidebar.add(btnPanel3);
+        sidebar.add(btnPanel4);
+        sidebar.add(btnPanel5);
+        sidebar.add(btnPanel6);
+        sidebar.add(btnLogout);
 
-     add(sidebar, BorderLayout.WEST);
-     add(panelContainer, BorderLayout.CENTER);
- }
+        // Content panel with CardLayout to hold the 6 panels
+        cardLayout = new CardLayout();
+        panelContainer = new JPanel(cardLayout);
+        panelContainer.add(new Panel1(), "Panel1");
+        panelContainer.add(new Panel2(), "Panel2");
+        panelContainer.add(new Panel3(), "Panel3");
+        panelContainer.add(new Panel4(), "Panel4");
+        panelContainer.add(new Panel5(), "Panel5");
+        panelContainer.add(new Panel6(), "Panel6");
+
+        // Button Actions to switch between panels
+        btnPanel1.addActionListener(e -> cardLayout.show(panelContainer, "Panel1"));
+        btnPanel2.addActionListener(e -> cardLayout.show(panelContainer, "Panel2"));
+        btnPanel3.addActionListener(e -> cardLayout.show(panelContainer, "Panel3"));
+        btnPanel4.addActionListener(e -> cardLayout.show(panelContainer, "Panel4"));
+        btnPanel5.addActionListener(e -> cardLayout.show(panelContainer, "Panel5"));
+        btnPanel6.addActionListener(e -> cardLayout.show(panelContainer, "Panel6"));
+
+        btnLogout.addActionListener(e -> frame.switchTo("ManagerLogin")); // Switch back to login
+
+        add(sidebar, BorderLayout.WEST);
+        add(panelContainer, BorderLayout.CENTER);
+    }
 }
 
 // Example Panel 1
@@ -526,5 +611,37 @@ class Panel2 extends JPanel {
     public Panel2() {
         setBackground(Color.GREEN);
         add(new JLabel("This is Panel 2"));
+    }
+}
+
+// Example Panel 3
+class Panel3 extends JPanel {
+    public Panel3() {
+        setBackground(Color.BLUE);
+        add(new JLabel("This is Panel 3"));
+    }
+}
+
+// Example Panel 4
+class Panel4 extends JPanel {
+    public Panel4() {
+        setBackground(Color.YELLOW);
+        add(new JLabel("This is Panel 4"));
+    }
+}
+
+// Example Panel 5
+class Panel5 extends JPanel {
+    public Panel5() {
+        setBackground(Color.PINK);
+        add(new JLabel("This is Panel 5"));
+    }
+}
+
+// Example Panel 6
+class Panel6 extends JPanel {
+    public Panel6() {
+        setBackground(Color.ORANGE);
+        add(new JLabel("This is Panel 6"));
     }
 }

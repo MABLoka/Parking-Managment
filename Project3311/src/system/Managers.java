@@ -140,10 +140,39 @@ class SuperManager extends Managers {
     }
 }
 
-// Normal manager class without Singleton
 class Manager extends Managers {
-    // Manager-specific implementations
+    // Private static instance of the Manager class
+    private static Manager instance;
+
+    // Constructor is private to prevent direct instantiation
+    private Manager(int id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
+    // Public method to provide access to the single instance of the Manager class
+    public static Manager getInstance(int id, String name, String email) {
+        if (instance == null) {
+            instance = new Manager(id, name, email);
+        }
+        return instance;
+    }
+
+    // Getter methods for Manager's fields if needed
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
 }
+
 
 
 
