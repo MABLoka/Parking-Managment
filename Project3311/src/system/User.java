@@ -384,7 +384,7 @@ class ManagerLoginPanel extends JPanel {
 	     GridBagConstraints gbc = new GridBagConstraints();
 	     gbc.insets = new Insets(5, 5, 5, 5);
 	     
-	     JLabel lblUser = new JLabel("ID:");
+	     JLabel lblUser = new JLabel("Name:");
 	     JTextField txtUser = new JTextField(15);
 	     JLabel lblPass = new JLabel("Password:");
 	     JPasswordField txtPass = new JPasswordField(15);
@@ -402,13 +402,13 @@ class ManagerLoginPanel extends JPanel {
 	     
 	     // Login Button Action
 	     btnLogin.addActionListener(e -> {
-	         String id = txtUser.getText();
+	         String name = txtUser.getText();
 	         String password = new String(txtPass.getPassword());
 	         
 	         String[] nextRecord;
 	         try {
 					while ((nextRecord = usersFile.readNext()) != null) {
-						if(id.equals(nextRecord[1]) && password.equals(nextRecord[3])) {
+						if(name.equals(nextRecord[0]) && password.equals(nextRecord[3])) {
 							if(nextRecord[4].equals("Y")) {
 								frame.manager = SuperManager.getInstance();
 							} else {
