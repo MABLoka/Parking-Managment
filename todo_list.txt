@@ -1,0 +1,20 @@
+TODO: 
+
+Programming:
+- Implement Parkinglot.java
+- Implement Booking.java
+- Implement Sensor.java
+- Implement Parkingspace.java
+- Implement 4 more design patterns (Singleton and Factory Design already implemented)
+
+Diagrams:
+- Updated class diagram
+- Component diagram, with justifications
+
+Report:
+- Justifications for design patterns we chose
+- Justification  for component decomposition and interactions
+- Justification of how each Req can be achieved
+
+Video:
+- Demo video, generate sample data
