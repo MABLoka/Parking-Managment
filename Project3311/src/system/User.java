@@ -10,6 +10,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 
 import com.opencsv.CSVReader;
+import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
 
 // -------------------------- Main User Class --------------------------
@@ -304,79 +305,6 @@ class RegtisterPanel extends JPanel {
 	}
 }
 
-// -------------------------- Manager Login Panel --------------------------
-class ManagerLoginPanel extends JPanel {
-	private CSVReader usersFile;
-	boolean success = false;
-	public ManagerLoginPanel(User frame) {
-		Reader reader = null;
-		Path filePath = Paths.get("src", "system", "resources", "managers.csv").toAbsolutePath();
-		try {
-			reader = Files.newBufferedReader(filePath);
-			usersFile = new CSVReader(reader);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		setLayout(new GridBagLayout());
-		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.insets = new Insets(5,5,5,5);
-
-		JLabel lblUser = new JLabel("Name:");
-		JTextField txtUser = new JTextField(15);
-		JLabel lblPass = new JLabel("Password:");
-		JPasswordField txtPass = new JPasswordField(15);
-		JButton btnLogin = new JButton("Login");
-		JButton btnClient = new JButton("Client");
-
-		gbc.gridx = 0; gbc.gridy = 0; add(lblUser, gbc);
-		gbc.gridx = 1; gbc.gridy = 0; add(txtUser, gbc);
-		gbc.gridx = 0; gbc.gridy = 1; add(lblPass, gbc);
-		gbc.gridx = 1; gbc.gridy = 1; add(txtPass, gbc);
-		gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; add(btnLogin, gbc);
-		gbc.gridx = 2; gbc.gridy = 2; gbc.gridwidth = 2; add(btnClient, gbc);
-
-		btnLogin.addActionListener(e -> {
-			if (usersFile == null) {
-				JOptionPane.showMessageDialog(this,
-						"Could not read managers.csv. Check file path and try again.",
-						"CSV Error",
-						JOptionPane.ERROR_MESSAGE
-				);
-				return;
-			}
-			String name = txtUser.getText();
-			String password = new String(txtPass.getPassword());
-			String[] nextRecord;
-			try {
-				while ((nextRecord = usersFile.readNext()) != null) {
-					if(name.equals(nextRecord[0]) && password.equals(nextRecord[3])) {
-						if(nextRecord[4].equals("Y")) {
-							frame.manager = SuperManager.getInstance();
-						} else {
-							frame.manager = Manager.getInstance(
-									Integer.parseInt(nextRecord[1]),
-									nextRecord[0],
-									nextRecord[2]
-							);
-						}
-						frame.switchTo("ManagerMain");
-						success = true;
-						break;
-					}
-				}
-				if (!success) {
-					JOptionPane.showMessageDialog(this, "Invalid Credentials!", "Error", JOptionPane.ERROR_MESSAGE);
-				}
-			} catch (CsvValidationException | IOException e1) {
-				e1.printStackTrace();
-			}
-		});
-
-		btnClient.addActionListener(e -> frame.switchTo("ClientLogin"));
-	}
-}
-
 // -------------------------- Client Main Panel with Sidebar --------------------------
 class ClientMainPanel extends JPanel {
 	private CardLayout cardLayout;
@@ -446,16 +374,16 @@ class BookingPanel extends JPanel {
 		gbc.insets = new Insets(5,5,5,5);
 		
 		// Get the list of lots on data base
-		ArrayList<Parkinglot> records = new ArrayList<Parkinglot>();
+		ArrayList<Parkinglot> lots = new ArrayList<Parkinglot>();
 		String[] nextRecord;
 		try {
 			int recordnum = 0;
 			lotsFile.readNext(); 
 			while ((nextRecord = lotsFile.readNext()) != null) {
 		
-				records.add(new Parkinglot(Integer.parseInt(nextRecord[0]), nextRecord[1], nextRecord[2], true, 100));
+				lots.add(new Parkinglot(Integer.parseInt(nextRecord[0]), nextRecord[1], nextRecord[2], true, 100));
 				for(int i = 3; i < 104; i++) {
-					records.get(recordnum).addSpace(new Parkingspace( i-3 , nextRecord[i].equals("Y") ? true : false));
+					lots.get(recordnum).addSpace(new Parkingspace( i-3 , nextRecord[i].equals("Y") ? true : false));
 				}
 				recordnum++;
 			}
@@ -475,9 +403,9 @@ class BookingPanel extends JPanel {
 		// 2) Location drop-down
 		
 		JLabel lblLocation = new JLabel("Location:");
-		String[] locations = new String[records.size()];
-		for(int i = 1; i < records.size(); i++) {
-			locations[i] = records.get(i).getLocation();
+		String[] locations = new String[lots.size()];
+		for(int i = 1; i < lots.size(); i++) {
+			locations[i] = lots.get(i).getLocation();
 		}
 		
 		JComboBox<String> comboLocation = new JComboBox<>(locations);
@@ -490,7 +418,7 @@ class BookingPanel extends JPanel {
 			
 			int lotid = comboLocation.getSelectedIndex();
 			// Populate combo with **all** spaces
-			for (Parkingspace ps : records.get(lotid).getSpaces()) {
+			for (Parkingspace ps : lots.get(lotid).getSpaces()) {
 				comboSpaceId.addItem(ps.getId());
 			}
 
@@ -506,7 +434,7 @@ class BookingPanel extends JPanel {
 					if (value instanceof Integer) {
 						int spaceId = (Integer) value;
 						Parkingspace ps = null;
-						for (Parkingspace s : records.get(lotid).getSpaces()) {
+						for (Parkingspace s : lots.get(lotid).getSpaces()) {
 							if (s.getId() == spaceId) {
 								ps = s;
 								break;
@@ -577,6 +505,7 @@ class BookingPanel extends JPanel {
 
 		// 6) Book button logic
 		btnBook.addActionListener(e -> {
+			int lotid = comboLocation.getSelectedIndex();
 			// Must be logged in
 			if (frame.client == null) {
 				JOptionPane.showMessageDialog(this, "Please log in first.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -594,8 +523,9 @@ class BookingPanel extends JPanel {
 				return;
 			}
 			// Find that space in the global lot
+			
 			Parkingspace targetSpace = null;
-			for (Parkingspace s : frame.globalLot.getSpaces()) {
+			for (Parkingspace s : lots.get(lotid).getSpaces()) {
 				if (s.getId() == spaceId) {
 					targetSpace = s;
 					break;
@@ -636,7 +566,7 @@ class BookingPanel extends JPanel {
 						new Booking.ConcreteClient(frame.client.getName(), frame.client.getId())
 				);
 				Booking.BookingAdapter adapter = new Booking.BookingAdapterImpl();
-				boolean booked = adapter.bookParkingSpace(frame.globalLot, spaceId, booking);
+				boolean booked = adapter.bookParkingSpace(lots.get(lotid), spaceId, booking);
 				if (booked) {
 					LocalTime startLocal = LocalTime.ofSecondOfDay(startTime);
 					LocalTime endLocal   = LocalTime.ofSecondOfDay(endTime);
@@ -647,11 +577,12 @@ class BookingPanel extends JPanel {
 					try (BufferedWriter writer = new BufferedWriter(new FileWriter(bookingPath.toFile(), true))) {
 						// No "sec" in time UI, so no change needed for actual times
 						if (!bookingFileExists) {
-							writer.write("BookingId,ClientId,ClientRate,LicencePlate,Location,StartingTime,EndTime,Date,Cost\n");
+							writer.write("BookingId,SpaceId,ClientId,ClientRate,LicencePlate,Location,StartingTime,EndTime,Date,Cost\n");
 						}
 						String date = java.time.LocalDate.now().toString();
 						writer.write(
 								booking.getBookingId() + "," +
+										lots.get(lotid).getId() + "-" + targetSpace.getId() + "," +
 										frame.client.getId() + "," +
 										clientRate + "," +
 										booking.getLicensePlate() + "," +
@@ -745,6 +676,81 @@ class ClientPanel6 extends JPanel {
 	}
 }
 
+
+//-------------------------- Manager Login Panel --------------------------
+class ManagerLoginPanel extends JPanel {
+	private CSVReader usersFile;
+	boolean success = false;
+	public ManagerLoginPanel(User frame) {
+		Reader reader = null;
+		Path filePath = Paths.get("src", "system", "resources", "managers.csv").toAbsolutePath();
+		try {
+			reader = Files.newBufferedReader(filePath);
+			usersFile = new CSVReader(reader);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		setLayout(new GridBagLayout());
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.insets = new Insets(5,5,5,5);
+
+		JLabel lblUser = new JLabel("Name:");
+		JTextField txtUser = new JTextField(15);
+		JLabel lblPass = new JLabel("Password:");
+		JPasswordField txtPass = new JPasswordField(15);
+		JButton btnLogin = new JButton("Login");
+		JButton btnClient = new JButton("Client");
+
+		gbc.gridx = 0; gbc.gridy = 0; add(lblUser, gbc);
+		gbc.gridx = 1; gbc.gridy = 0; add(txtUser, gbc);
+		gbc.gridx = 0; gbc.gridy = 1; add(lblPass, gbc);
+		gbc.gridx = 1; gbc.gridy = 1; add(txtPass, gbc);
+		gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2; add(btnLogin, gbc);
+		gbc.gridx = 2; gbc.gridy = 2; gbc.gridwidth = 2; add(btnClient, gbc);
+
+		btnLogin.addActionListener(e -> {
+			if (usersFile == null) {
+				JOptionPane.showMessageDialog(this,
+						"Could not read managers.csv. Check file path and try again.",
+						"CSV Error",
+						JOptionPane.ERROR_MESSAGE
+				);
+				return;
+			}
+			String name = txtUser.getText();
+			String password = new String(txtPass.getPassword());
+			String[] nextRecord;
+			try {
+				while ((nextRecord = usersFile.readNext()) != null) {
+					if(name.equals(nextRecord[0]) && password.equals(nextRecord[3])) {
+						if(nextRecord[4].equals("Y")) {
+							frame.manager = SuperManager.getInstance();
+						} else {
+							frame.manager = Manager.getInstance(
+									Integer.parseInt(nextRecord[1]),
+									nextRecord[0],
+									nextRecord[2]
+							);
+						}
+						frame.switchTo("ManagerMain");
+						success = true;
+						break;
+					}
+				}
+				if (!success) {
+					JOptionPane.showMessageDialog(this, "Invalid Credentials!", "Error", JOptionPane.ERROR_MESSAGE);
+				}
+			} catch (CsvValidationException | IOException e1) {
+				e1.printStackTrace();
+			}
+		});
+
+		btnClient.addActionListener(e -> frame.switchTo("ClientLogin"));
+	}
+	
+}
+
 // -------------------------- Manager Main Panel with Sidebar --------------------------
 class ManagerMainPanel extends JPanel {
 	private CardLayout cardLayout;
@@ -755,16 +761,16 @@ class ManagerMainPanel extends JPanel {
 
 		JPanel sidebar = new JPanel();
 		sidebar.setLayout(new GridLayout(7, 1));
-		JButton btnPanel1 = new JButton("Panel 1");
-		JButton btnPanel2 = new JButton("Panel 2");
+		JButton btnAddLotPanel = new JButton("addLotPanel");
+		JButton btnGenerateManagerPanel = new JButton("GenerateManagerPanel");
 		JButton btnPanel3 = new JButton("Panel 3");
 		JButton btnPanel4 = new JButton("Panel 4");
 		JButton btnPanel5 = new JButton("Panel 5");
 		JButton btnPanel6 = new JButton("Panel 6");
 		JButton btnLogout = new JButton("Logout");
 
-		sidebar.add(btnPanel1);
-		sidebar.add(btnPanel2);
+		sidebar.add(btnAddLotPanel);
+		sidebar.add(btnGenerateManagerPanel);
 		sidebar.add(btnPanel3);
 		sidebar.add(btnPanel4);
 		sidebar.add(btnPanel5);
@@ -773,15 +779,15 @@ class ManagerMainPanel extends JPanel {
 
 		cardLayout = new CardLayout();
 		panelContainer = new JPanel(cardLayout);
-		panelContainer.add(new Panel1(), "Panel1");
-		panelContainer.add(new Panel2(), "Panel2");
+		panelContainer.add(new addLotPanel(frame), "addLotPanel");
+		panelContainer.add(new GenerateManagerPanel(frame), "GenerateManagerPanel");
 		panelContainer.add(new Panel3(), "Panel3");
 		panelContainer.add(new Panel4(), "Panel4");
 		panelContainer.add(new Panel5(), "Panel5");
 		panelContainer.add(new Panel6(), "Panel6");
 
-		btnPanel1.addActionListener(e -> cardLayout.show(panelContainer, "Panel1"));
-		btnPanel2.addActionListener(e -> cardLayout.show(panelContainer, "Panel2"));
+		btnAddLotPanel.addActionListener(e -> cardLayout.show(panelContainer, "addLotPanel"));
+		btnGenerateManagerPanel.addActionListener(e -> cardLayout.show(panelContainer, "GenerateManagerPanel"));
 		btnPanel3.addActionListener(e -> cardLayout.show(panelContainer, "Panel3"));
 		btnPanel4.addActionListener(e -> cardLayout.show(panelContainer, "Panel4"));
 		btnPanel5.addActionListener(e -> cardLayout.show(panelContainer, "Panel5"));
@@ -791,6 +797,146 @@ class ManagerMainPanel extends JPanel {
 		add(sidebar, BorderLayout.WEST);
 		add(panelContainer, BorderLayout.CENTER);
 	}
+}
+
+//	add Lot Panel
+class addLotPanel extends JPanel {
+	private JTextField nameField;
+    private JTextField locationField;
+    private JComboBox<String> statusComboBox;
+    
+	public addLotPanel(User frame) {
+		
+		Reader reader = null;
+		Path parkingLotPath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
+		try {
+			reader = Files.newBufferedReader(parkingLotPath);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		CSVReader lotsFile = new CSVReader(reader);
+		
+		setLayout(new GridLayout(4, 2, 5, 5));
+
+        // Name Label & Field
+        add(new JLabel("Name:"));
+        nameField = new JTextField(15);
+        add(nameField);
+
+        // Location Label & Field
+        add(new JLabel("Location:"));
+        locationField = new JTextField(15);
+        add(locationField);
+
+        // Status Selection (Enabled/Disabled)
+        add(new JLabel("Status:"));
+        String[] statusOptions = {"Enabled", "Disabled"};
+        statusComboBox = new JComboBox<>(statusOptions);
+        add(statusComboBox);
+
+        // Submit Button
+        JButton submitButton = new JButton("Submit");
+        add(submitButton);
+
+        // Label to display stored values
+        JLabel resultLabel = new JLabel("");
+        add(resultLabel);
+
+        // Button Click Event
+        submitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	// Write to CSV
+            	Path parkingLotPath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
+				boolean parkingLotFileExists = Files.exists(parkingLotPath);
+				if(nameField.getText().equals(null) || locationField.getText().equals(null)) {
+					JOptionPane.showMessageDialog(addLotPanel.this, "Please fill name/location");
+				} else {
+					try (CSVWriter writer = new CSVWriter(new FileWriter(parkingLotPath.toFile(), true))) {
+						String date = java.time.LocalDate.now().toString();
+						String[] row = new String[104]; // Adjust array size based on column count
+		                
+		                row[0] = generateLotId();         // ID
+		                row[1] = nameField.getText();              // Name
+		                row[2] = locationField.getText();
+		                row[3] = ((String) statusComboBox.getSelectedItem()).equals("Enabled") ? "Y" : "N";
+		                for(int i = 4; i < 100+4; i++) {
+		                	row[i] = ((String) statusComboBox.getSelectedItem()).equals("Enabled") ? "Y" : "N";
+		                }
+						writer.writeNext(row);
+						JOptionPane.showMessageDialog(addLotPanel.this, "New lot successfully added!");
+		
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						JOptionPane.showMessageDialog(addLotPanel.this, "Adding a parking failed!");
+						e1.printStackTrace();
+					}
+				}
+				
+            }
+        });
+    }
+	
+	private String generateLotId() {
+		int lastId = 0;
+		try {
+			Path filePath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
+			if (Files.exists(filePath)) {
+				try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
+					String line;
+					boolean isHeader = true;
+					while ((line = reader.readLine()) != null) {
+						if (isHeader) {
+							isHeader = false;
+							continue;
+						}
+						String[] columns = line.split(",");
+						try {
+							int parsedId = Integer.parseInt(columns[0]);
+							lastId = Math.max(lastId, parsedId);
+						} catch (NumberFormatException ex) {
+							continue;
+						}
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return String.valueOf(lastId + 1);
+	}
+		
+}
+
+//	Generate Manager Panel
+class GenerateManagerPanel extends JPanel {
+    public GenerateManagerPanel(User frame) {
+        // Setting the layout to center the button
+        setLayout(new BorderLayout());
+
+        // Create the "Generate Manager" button
+        JButton generateButton = new JButton("Generate Manager");
+
+        // Add the button to the panel
+        add(generateButton, BorderLayout.CENTER);
+        
+        
+        // Add ActionListener to handle button click
+        generateButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Show message after button click
+            	if(frame.manager instanceof SuperManager) {
+            		String[] info = ((SuperManager) frame.manager).generateManager();
+            		JOptionPane.showMessageDialog(GenerateManagerPanel.this, "Manager Generated!\n" + "Name: " + info[0] + "\n" + "Password: " + info[1]);
+            	} else {
+            		JOptionPane.showMessageDialog(GenerateManagerPanel.this, "Unauthorized!");
+            	}
+                
+            }
+        });
+    }
+
 }
 class Panel1 extends JPanel {
 	public Panel1() {

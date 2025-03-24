@@ -1,1 +1,4 @@
-﻿BookingId,ClientId,ClientRate,LicenceRate,Location,StartingTime,EndTime,Date,Cost
+﻿BookingId,SpaceId,ClientId,ClientRate,Licence,Location,StartingTime,EndTime,Date,Cost
+,,,,,,,,,
+,,,,,,,,,
+1,02-Jan,1,4,1234,Glendon,5:46,7:46,2025-03-24,8

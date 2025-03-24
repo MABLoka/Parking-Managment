@@ -14,7 +14,7 @@ public abstract class Managers {
     int id;
     String name;
     String email;
-    static String CSV_FILE = "src/system/resources/managerss.csv";
+    static String CSV_FILE = "src/system/resources/managers.csv";
     
     protected void verify(Client client) {
         // Implementation for verification
@@ -62,16 +62,16 @@ class SuperManager extends Managers {
     }
     
     // Public method to provide access to the single instance
-    private static void generateManager() {
+    static String[] generateManager() {
+    	
+    	String id = generateUserId();
+    	String name = "manager" + id;
+    	String email = "manager" + id + "@test.com";
+    	String password = generatePassword();
     	// Write to CSV file
         try {
         	Path filePath = Paths.get(CSV_FILE).toAbsolutePath();
-        	
-        	String id = generateUserId();
-        	String name = "manager" + id;
-        	String email = "manager" + id + "@test.com";
-        	String password = generatePassword();
-        	
+
             // Create the file if it does not exist
             boolean fileExists = Files.exists(filePath);
             try (BufferedWriter writer = new BufferedWriter(new FileWriter((CSV_FILE), true))) {
@@ -85,6 +85,8 @@ class SuperManager extends Managers {
         
             e.printStackTrace();
         }
+        String[] info = {name, password};
+        return  info;
     }
     
     private static String generateUserId() {
