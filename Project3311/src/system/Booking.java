@@ -3,41 +3,41 @@ package system;
 // --------------------- ONLY THE BOOKING CLASS MODIFIED HERE ---------------------
 public class Booking {
     private int bookingId;
+    private String SpaceId;
     private int clientId;
     private double clientRate;   // Client rate calculated on the client side
-    private double licenceRate;  // Licence rate remains as before
-    private String licensePlate; // Although not output in CSV per your header, we still store it.
+	private String licensePlate; // Although not output in CSV per your header, we still store it.
     private String location;     // Represents the ParkingSpace location
     private int startTime;       // in seconds from midnight
     private int endTime;         // finishing time
+    private String Date;         // finishing time
     private double cost;
     private int elapsedTime;
     private boolean deductable;
-    private Payment bill;
     private ClientInfoImplementor clientInfo;
 
     // Constructor with clientRate.
-    public Booking(int bookingId, int clientId, double clientRate, double licenceRate,
-                   String licensePlate, String location, int startTime, int endTime) {
+    public Booking(int bookingId, String SpaceId,int clientId, double clientRate, 
+                   String licensePlate, String location, int startTime, int endTime, String Date) {
         this.bookingId = bookingId;
+        this.SpaceId = SpaceId;
         this.clientId = clientId;
         this.clientRate = clientRate;
-        this.licenceRate = licenceRate;
         this.licensePlate = licensePlate;
         this.location = location;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.Date = Date;
         this.elapsedTime = endTime - startTime;
         this.deductable = false;
-        this.bill = null;
         this.cost = calculateCost();
     }
 
     // Overloaded constructor with Bridge Pattern client info.
-    public Booking(int bookingId, int clientId, double clientRate, double licenceRate,
-                   String licensePlate, String location, int startTime, int endTime,
+    public Booking(int bookingId, String SpaceId, int clientId, double clientRate,
+                   String licensePlate, String location, int startTime, int endTime, String Date,
                    ClientInfoImplementor clientInfo) {
-        this(bookingId, clientId, clientRate, licenceRate, licensePlate, location, startTime, endTime);
+        this(bookingId, SpaceId, clientId, clientRate,  licensePlate, location, startTime, endTime, Date);
         this.clientInfo = clientInfo;
     }
 
@@ -51,7 +51,11 @@ public class Booking {
         return durationInHours * clientRate;
     }
 
-    public int getBookingId() {
+    public void setStartTime(int startTime) {
+		this.startTime = startTime;
+	}
+
+	public int getBookingId() {
         return bookingId;
     }
 
@@ -61,10 +65,6 @@ public class Booking {
 
     public double getClientRate() {
         return clientRate;
-    }
-
-    public double getLicenceRate() {
-        return licenceRate;
     }
 
     public String getLicensePlate() {
@@ -95,9 +95,6 @@ public class Booking {
         return deductable;
     }
 
-    public Payment getBill() {
-        return bill;
-    }
 
     public ClientInfoImplementor getClientInfo() {
         return clientInfo;
@@ -128,7 +125,21 @@ public class Booking {
             return uniqueId;
         }
     }
+    public String getDate() {
+		return Date;
+	}
 
+	public String getSpaceId() {
+		return SpaceId;
+	}
+
+	public void setSpaceId(String spaceId) {
+		SpaceId = spaceId;
+	}
+
+	public void setDate(String date) {
+		Date = date;
+	}
     // --- ADAPTER PATTERN ---
     public static interface BookingAdapter {
         boolean bookParkingSpace(Parkinglot lot, int spaceId, Booking booking);

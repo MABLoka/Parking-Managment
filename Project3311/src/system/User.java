@@ -8,18 +8,43 @@ import java.nio.file.*;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.opencsv.CSVReader;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvValidationException;
 
 // -------------------------- Main User Class --------------------------
-public class User extends JFrame {
+public class User extends JFrame implements LoginObserver{
 	private CardLayout cardLayout;
 	private JPanel contentPanel;
 	protected Client client;       // Assume Client is defined with a getParkingRate() method.
 	protected Managers manager;    // Assume Managers is defined in your system package.
 	public Parkinglot globalLot;   // Global Parkinglot instance.
+	
+	private List<LoginObserver> observers = new ArrayList<>();
+
+    public void addObserver(LoginObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(LoginObserver observer) {
+        observers.remove(observer);
+    }
+
+    public void notifyObservers() {
+        for (LoginObserver observer : observers) {
+            observer.onLoginSuccess();  // Notify all observers when login is successful
+        }
+    }
+
+    public void login() {
+        
+        
+            System.out.println("Login Successful!");
+            notifyObservers();  // Notify observers on success
+      
+    }
 
 	public User() throws FileNotFoundException {
 		setTitle("Swing Multi-Panel Template");
@@ -39,14 +64,19 @@ public class User extends JFrame {
 		// Add panels (card names must match when switching)
 		contentPanel.add(new ClientLoginPanel(this), "ClientLogin");
 		contentPanel.add(new ManagerLoginPanel(this), "ManagerLogin");
-		contentPanel.add(new ClientMainPanel(this), "ClientMain");
-		contentPanel.add(new BookingPanel(this), "BookingPanel");
-		contentPanel.add(new ManagerMainPanel(this), "ManagerMain");
 		contentPanel.add(new RegtisterPanel(this), "ClientRegister");
 
 		add(contentPanel);
 	}
 
+	@Override
+    public void onLoginSuccess() {
+        // Update the UI when login is successful (e.g., switch to the "ClientMain" panel)
+		if(this.client != null)
+			contentPanel.add(new ClientMainPanel(this), "ClientMain");
+		else
+			contentPanel.add(new ManagerMainPanel(this), "ManagerMain");
+    }
 	public void switchTo(String panelName) {
 		cardLayout.show(contentPanel, panelName);
 	}
@@ -115,8 +145,10 @@ class ClientLoginPanel extends JPanel {
 								nextRecord[3].trim(),
 								uniqueId
 						);
-						frame.switchTo("ClientMain");
+						
 						success = true;
+						frame.onLoginSuccess();
+						frame.switchTo("ClientMain");
 						break;
 					}
 				}
@@ -224,6 +256,8 @@ class RegtisterPanel extends JPanel {
 		btnLogin.addActionListener(e -> frame.switchTo("ClientLogin"));
 		btnManage.addActionListener(e -> frame.switchTo("ManagerLogin"));
 	}
+	
+	
 
 	private void registerUser() {
 		String name = txtUser.getText().trim();
@@ -231,6 +265,7 @@ class RegtisterPanel extends JPanel {
 		String email = txtEmail.getText().trim();
 		String uniqueid = txtId.getText().trim();
 		String id = "";
+		boolean nonVisitor = studentOpt.isSelected() || facultyOpt.isSelected() || staffOpt.isSelected();
 		if (name.isEmpty() || password.isEmpty() || email.isEmpty()) {
 			JOptionPane.showMessageDialog(this, "All fields are required!", "Error", JOptionPane.ERROR_MESSAGE);
 			return;
@@ -239,8 +274,17 @@ class RegtisterPanel extends JPanel {
 			JOptionPane.showMessageDialog(this, "Invalid email format!", "Error", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
+		if (!validEmail(email)) {
+			JOptionPane.showMessageDialog(this, "Email is already Registered/waiting for verification!", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (!isStrongPassword(password)) {
+			JOptionPane.showMessageDialog(this, "Weak!", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
 		if (txtId.isVisible() && uniqueid.isEmpty()) {
-			JOptionPane.showMessageDialog(this, "Phone number is required!", "Error", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "uniqueid is required!", "Error", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 		String userType = "VISITOR";
@@ -253,11 +297,10 @@ class RegtisterPanel extends JPanel {
 		}
 		try {
 			Path filePath = null;
-			boolean nonVisitor = studentOpt.isSelected() || facultyOpt.isSelected() || staffOpt.isSelected();
+			
 			if (nonVisitor) {
 				filePath = Paths.get(CSV_FILE).toAbsolutePath();
 			} else {
-				id = generateUserId();
 				filePath = Paths.get(CSV_FILE2).toAbsolutePath();
 			}
 			boolean fileExists = Files.exists(filePath);
@@ -265,6 +308,7 @@ class RegtisterPanel extends JPanel {
 				if (!fileExists) {
 					writer.write("name,id,email,password,uniqueid,type\n");
 				}
+				id = generateUserId(nonVisitor);
 				writer.write(name + "," + id + "," + email + "," + password + "," +
 						(uniqueid.isEmpty() ? "" : uniqueid) + "," + userType + "\n");
 				JOptionPane.showMessageDialog(this, "Registration successful!", "Success", JOptionPane.PLAIN_MESSAGE);
@@ -274,20 +318,89 @@ class RegtisterPanel extends JPanel {
 			e.printStackTrace();
 		}
 	}
+	
+	public static boolean isStrongPassword(String password) {
+        if (password.length() < 8) return false; // Check length
 
-	private String generateUserId() {
-		int lastId = 0;
-		try {
-			Path filePath = Paths.get(CSV_FILE2).toAbsolutePath();
+        boolean hasUpper = false, hasLower = false, hasDigit = false, hasSpecial = false;
+
+        for (char ch : password.toCharArray()) {
+            if (Character.isUpperCase(ch)) hasUpper = true;
+            else if (Character.isLowerCase(ch)) hasLower = true;
+            else if (Character.isDigit(ch)) hasDigit = true;
+            else if ("!@#$%^&*()-_+=<>?/{}[]".contains(String.valueOf(ch))) hasSpecial = true;
+        }
+
+        return hasUpper && hasLower && hasDigit && hasSpecial;
+    }
+	
+	private boolean validEmail(String email) {
+		try {		
+			Path filePath = Paths.get(CSV_FILE).toAbsolutePath();
+			
 			if (Files.exists(filePath)) {
 				try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
 					String line;
 					boolean isHeader = true;
 					while ((line = reader.readLine()) != null) {
+						String[] columns = line.split(",");
+						// Ensure at least 3 columns exist before checking
+	                    if (columns.length < 3) {
+	                    	return true; // Skip invalid or empty rows
+	                    }
+
+	                    if (columns[2].trim().equals(email)) {
+	                        return false;
+	                    }
+					}
+				}
+			}
+			
+			filePath = Paths.get(CSV_FILE2).toAbsolutePath();
+			if (Files.exists(filePath)) {
+				try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
+					String line;
+					boolean isHeader = true;
+					while ((line = reader.readLine()) != null) {
+						String[] columns = line.split(",");
+						// Ensure at least 3 columns exist before checking
+	                    if (columns.length < 3) {
+	                    	return true; // Skip invalid or empty rows
+	                    }
+
+	                    if (columns[2].trim().equals(email)) {
+	                        return false;
+	                    }
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return true;
+	}
+	
+	private String generateUserId(boolean verifyFile) {
+		int lastId = 0;
+		try {
+			Path filePath = null;
+			if (verifyFile) {
+				filePath = Paths.get(CSV_FILE).toAbsolutePath();
+			} else {
+				filePath = Paths.get(CSV_FILE2).toAbsolutePath();
+			}
+			
+			if (Files.exists(filePath)) {
+				try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
+					String line;
+					boolean isHeader = true;
+					while ((line = reader.readLine()) != null) {
+						
 						if (isHeader) {
 							isHeader = false;
 							continue;
 						}
+					    
 						String[] columns = line.split(",");
 						try {
 							int parsedId = Integer.parseInt(columns[1]);
@@ -305,376 +418,7 @@ class RegtisterPanel extends JPanel {
 	}
 }
 
-// -------------------------- Client Main Panel with Sidebar --------------------------
-class ClientMainPanel extends JPanel {
-	private CardLayout cardLayout;
-	private JPanel panelContainer;
 
-	public ClientMainPanel(User frame) {
-		setLayout(new BorderLayout());
-
-		JPanel sidebar = new JPanel();
-		sidebar.setLayout(new GridLayout(8, 1));
-//		JButton btnPanel1 = new JButton("Client Panel 1");
-		JButton btnPanel2 = new JButton("Client Panel 2");
-		JButton btnPanel3 = new JButton("Client Panel 3");
-		JButton btnPanel4 = new JButton("Client Panel 4");
-		JButton btnPanel5 = new JButton("Client Panel 5");
-		JButton btnPanel6 = new JButton("Client Panel 6");
-		JButton btnBooking = new JButton("Booking");
-		JButton btnLogout = new JButton("Logout");
-
-		sidebar.add(btnBooking);
-		sidebar.add(btnPanel2);
-		sidebar.add(btnPanel3);
-		sidebar.add(btnPanel4);
-		sidebar.add(btnPanel5);
-		sidebar.add(btnPanel6);
-//		sidebar.add(btnBooking);
-		sidebar.add(btnLogout);
-
-		cardLayout = new CardLayout();
-		panelContainer = new JPanel(cardLayout);
-		panelContainer.add(new BookingPanel(frame), "BookingPanel");
-		panelContainer.add(new ClientPanel2(), "ClientPanel2");
-		panelContainer.add(new ClientPanel3(), "ClientPanel3");
-		panelContainer.add(new ClientPanel4(), "ClientPanel4");
-		panelContainer.add(new ClientPanel5(), "ClientPanel5");
-		panelContainer.add(new ClientPanel6(), "ClientPanel6");
-
-		btnBooking.addActionListener(e -> cardLayout.show(panelContainer, "BookingPanel"));
-		btnPanel2.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel2"));
-		btnPanel3.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel3"));
-		btnPanel4.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel4"));
-		btnPanel5.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel5"));
-		btnPanel6.addActionListener(e -> cardLayout.show(panelContainer, "ClientPanel6"));
-//		btnBooking.addActionListener(e -> frame.switchTo("BookingPanel"));
-		btnLogout.addActionListener(e -> frame.switchTo("ClientLogin"));
-
-		add(sidebar, BorderLayout.WEST);
-		add(panelContainer, BorderLayout.CENTER);
-	}
-}
-
-// -------------------------- Booking Panel (No "seconds" & Occupied in red) --------------------------
-class BookingPanel extends JPanel {
-	public BookingPanel(User frame) {
-		
-		Reader reader = null;
-		Path filePath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
-		try {
-			reader = Files.newBufferedReader(filePath);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		CSVReader lotsFile = new CSVReader(reader);
-		
-		setLayout(new GridBagLayout());
-		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.insets = new Insets(5,5,5,5);
-		
-		// Get the list of lots on data base
-		ArrayList<Parkinglot> lots = new ArrayList<Parkinglot>();
-		String[] nextRecord;
-		try {
-			int recordnum = 0;
-			lotsFile.readNext(); 
-			while ((nextRecord = lotsFile.readNext()) != null) {
-		
-				lots.add(new Parkinglot(Integer.parseInt(nextRecord[0]), nextRecord[1], nextRecord[2], true, 100));
-				for(int i = 3; i < 104; i++) {
-					lots.get(recordnum).addSpace(new Parkingspace( i-3 , nextRecord[i].equals("Y") ? true : false));
-				}
-				recordnum++;
-			}
-		} catch (CsvValidationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-		// 1) License Plate input
-		JLabel lblLicense = new JLabel("License Plate:");
-		JTextField txtLicense = new JTextField(15);
-
-		// 2) Location drop-down
-		
-		JLabel lblLocation = new JLabel("Location:");
-		String[] locations = new String[lots.size()];
-		for(int i = 1; i < lots.size(); i++) {
-			locations[i] = lots.get(i).getLocation();
-		}
-		
-		JComboBox<String> comboLocation = new JComboBox<>(locations);
-		
-		// 3) Space ID drop-down (with custom renderer for red if occupied)
-		JLabel lblSpaceId = new JLabel("Space ID:");
-		JComboBox<Integer> comboSpaceId = new JComboBox<>();
-		
-		comboLocation.addActionListener(e -> {
-			
-			int lotid = comboLocation.getSelectedIndex();
-			// Populate combo with **all** spaces
-			for (Parkingspace ps : lots.get(lotid).getSpaces()) {
-				comboSpaceId.addItem(ps.getId());
-			}
-
-			// This custom renderer highlights occupied spaces in red
-			comboSpaceId.setRenderer(new DefaultListCellRenderer() {
-				@Override
-				public Component getListCellRendererComponent(
-						JList<?> list, Object value, int index,
-						boolean isSelected, boolean cellHasFocus) {
-	
-					super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-	
-					if (value instanceof Integer) {
-						int spaceId = (Integer) value;
-						Parkingspace ps = null;
-						for (Parkingspace s : lots.get(lotid).getSpaces()) {
-							if (s.getId() == spaceId) {
-								ps = s;
-								break;
-							}
-						}
-						if (ps != null && !ps.isAvailable()) {
-							// Occupied => Red background
-							if (isSelected) {
-								setBackground(Color.RED.darker());
-							} else {
-								setBackground(Color.RED);
-							}
-						} else {
-							// Available => normal background
-							if (isSelected) {
-								setBackground(UIManager.getColor("List.selectionBackground"));
-							} else {
-								setBackground(UIManager.getColor("List.background"));
-							}
-						}
-					}
-					return this;
-				}
-			});
-		});
-
-		
-		// 4) Start Time: Only hour & minute spinners (NO seconds).
-		LocalDateTime now = LocalDateTime.now();
-		int currentHr = now.getHour();
-		int currentMin = now.getMinute();
-
-		JLabel lblStartTime = new JLabel("Start Time:");
-		JLabel lblHr = new JLabel("Hr:");
-		JSpinner spinnerStartHr = new JSpinner(new SpinnerNumberModel(currentHr, 0, 23, 1));
-		JLabel lblMin = new JLabel("Min:");
-		JSpinner spinnerStartMin = new JSpinner(new SpinnerNumberModel(currentMin, 0, 59, 1));
-
-		// 5) Parking Duration (hours)
-		JLabel lblDuration = new JLabel("Parking Duration (hour):");
-		JSpinner spinnerDuration = new JSpinner(new SpinnerNumberModel(1, 1, 24, 1));
-
-		JButton btnBook = new JButton("Book Space");
-		JButton btnBack = new JButton("Back");
-
-		// Layout
-		gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1; add(lblSpaceId, gbc);
-		gbc.gridx = 1; gbc.gridy = 0; gbc.gridwidth = 2; add(comboSpaceId, gbc);
-
-		gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1; add(lblLicense, gbc);
-		gbc.gridx = 1; gbc.gridy = 1; gbc.gridwidth = 2; add(txtLicense, gbc);
-
-		gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1; add(lblLocation, gbc);
-		gbc.gridx = 1; gbc.gridy = 2; gbc.gridwidth = 2; add(comboLocation, gbc);
-
-		gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 3; add(lblStartTime, gbc);
-
-		gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 1; add(lblHr, gbc);
-		gbc.gridx = 1; gbc.gridy = 4; add(spinnerStartHr, gbc);
-		gbc.gridx = 2; gbc.gridy = 4; add(lblMin, gbc);
-		gbc.gridx = 3; gbc.gridy = 4; add(spinnerStartMin, gbc);
-
-		gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 1; add(lblDuration, gbc);
-		gbc.gridx = 1; gbc.gridy = 5; gbc.gridwidth = 3; add(spinnerDuration, gbc);
-
-		gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 4; add(btnBook, gbc);
-		gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 4; add(btnBack, gbc);
-
-		// 6) Book button logic
-		btnBook.addActionListener(e -> {
-			int lotid = comboLocation.getSelectedIndex();
-			// Must be logged in
-			if (frame.client == null) {
-				JOptionPane.showMessageDialog(this, "Please log in first.", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			// Validate license plate
-			String license = txtLicense.getText().trim();
-			if (license.isEmpty()) {
-				JOptionPane.showMessageDialog(this, "License Plate must be filled.", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			Integer spaceId = (Integer) comboSpaceId.getSelectedItem();
-			if (spaceId == null) {
-				JOptionPane.showMessageDialog(this, "No parking space selected.", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			// Find that space in the global lot
-			
-			Parkingspace targetSpace = null;
-			for (Parkingspace s : lots.get(lotid).getSpaces()) {
-				if (s.getId() == spaceId) {
-					targetSpace = s;
-					break;
-				}
-			}
-			if (targetSpace == null) {
-				JOptionPane.showMessageDialog(this, "Space not found.", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			if (!targetSpace.isAvailable()) {
-				JOptionPane.showMessageDialog(this, "Space is occupied!", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-			try {
-				int hrVal = (Integer) spinnerStartHr.getValue();
-				int minVal = (Integer) spinnerStartMin.getValue();
-				// no seconds
-				int secVal = 0;
-
-				int startTime = hrVal * 3600 + minVal * 60 + secVal;
-				int duration = (Integer) spinnerDuration.getValue();
-				int endTime = startTime + duration * 3600;
-
-				String bookingLocation = (String) comboLocation.getSelectedItem();
-				int bookingId = getNextBookingId();
-				double clientRate = frame.client.getParkingRate();
-
-				// Create booking
-				Booking booking = new Booking(
-						bookingId,
-						frame.client.getId(),
-						clientRate,
-						3.0,    // licence rate if needed
-						license,
-						bookingLocation,
-						startTime,
-						endTime,
-						new Booking.ConcreteClient(frame.client.getName(), frame.client.getId())
-				);
-				Booking.BookingAdapter adapter = new Booking.BookingAdapterImpl();
-				boolean booked = adapter.bookParkingSpace(lots.get(lotid), spaceId, booking);
-				if (booked) {
-					LocalTime startLocal = LocalTime.ofSecondOfDay(startTime);
-					LocalTime endLocal   = LocalTime.ofSecondOfDay(endTime);
-
-					// Write to CSV
-					Path bookingPath = Paths.get("src", "system", "resources", "bookings.csv").toAbsolutePath();
-					boolean bookingFileExists = Files.exists(bookingPath);
-					try (BufferedWriter writer = new BufferedWriter(new FileWriter(bookingPath.toFile(), true))) {
-						// No "sec" in time UI, so no change needed for actual times
-						if (!bookingFileExists) {
-							writer.write("BookingId,SpaceId,ClientId,ClientRate,LicencePlate,Location,StartingTime,EndTime,Date,Cost\n");
-						}
-						String date = java.time.LocalDate.now().toString();
-						writer.write(
-								booking.getBookingId() + "," +
-										lots.get(lotid).getId() + "-" + targetSpace.getId() + "," +
-										frame.client.getId() + "," +
-										clientRate + "," +
-										booking.getLicensePlate() + "," +
-										bookingLocation + "," +
-										startLocal.toString() + "," +
-										endLocal.toString() + "," +
-										date + "," +
-										booking.getCost() + "\n"
-						);
-					}
-					JOptionPane.showMessageDialog(this, "Booking successful and saved!");
-				} else {
-					JOptionPane.showMessageDialog(this, "Booking failed!");
-				}
-			} catch (NumberFormatException | IOException ex1) {
-				JOptionPane.showMessageDialog(this, "Please enter valid numeric values.", "Error", JOptionPane.ERROR_MESSAGE);
-			}
-		});
-
-		btnBack.addActionListener(e -> frame.switchTo("ClientMain"));
-	}
-
-	// Auto-generate next booking ID
-	private int getNextBookingId() {
-		int lastId = 0;
-		Path bookingPath = Paths.get("src", "system", "resources", "bookings.csv").toAbsolutePath();
-		if (Files.exists(bookingPath)) {
-			try (BufferedReader reader = new BufferedReader(new FileReader(bookingPath.toFile()))) {
-				String line;
-				boolean isHeader = true;
-				while ((line = reader.readLine()) != null) {
-					if (isHeader) {
-						isHeader = false;
-						continue;
-					}
-					String[] parts = line.split(",");
-					if (parts.length > 0) {
-						try {
-							int id = Integer.parseInt(parts[0]);
-							if (id > lastId) {
-								lastId = id;
-							}
-						} catch (NumberFormatException ex) {
-							// skip invalid
-						}
-					}
-				}
-			} catch (IOException ex) {
-				ex.printStackTrace();
-			}
-		}
-		return lastId + 1;
-	}
-}
-
-// -------------------------- Example Client Panels --------------------------
-class ClientPanel1 extends JPanel {
-	public ClientPanel1() {
-		setBackground(Color.RED);
-		add(new JLabel("This is Client Panel 1"));
-	}
-}
-class ClientPanel2 extends JPanel {
-	public ClientPanel2() {
-		setBackground(Color.GREEN);
-		add(new JLabel("This is Client Panel 2"));
-	}
-}
-class ClientPanel3 extends JPanel {
-	public ClientPanel3() {
-		setBackground(Color.BLUE);
-		add(new JLabel("This is Client Panel 3"));
-	}
-}
-class ClientPanel4 extends JPanel {
-	public ClientPanel4() {
-		setBackground(Color.YELLOW);
-		add(new JLabel("This is Client Panel 4"));
-	}
-}
-class ClientPanel5 extends JPanel {
-	public ClientPanel5() {
-		setBackground(Color.PINK);
-		add(new JLabel("This is Client Panel 5"));
-	}
-}
-class ClientPanel6 extends JPanel {
-	public ClientPanel6() {
-		setBackground(Color.ORANGE);
-		add(new JLabel("This is Client Panel 6"));
-	}
-}
 
 
 //-------------------------- Manager Login Panel --------------------------
@@ -733,8 +477,10 @@ class ManagerLoginPanel extends JPanel {
 									nextRecord[2]
 							);
 						}
-						frame.switchTo("ManagerMain");
+						
 						success = true;
+						frame.onLoginSuccess();
+						frame.switchTo("ManagerMain");
 						break;
 					}
 				}
@@ -749,228 +495,9 @@ class ManagerLoginPanel extends JPanel {
 		btnClient.addActionListener(e -> frame.switchTo("ClientLogin"));
 	}
 	
-}
-
-// -------------------------- Manager Main Panel with Sidebar --------------------------
-class ManagerMainPanel extends JPanel {
-	private CardLayout cardLayout;
-	private JPanel panelContainer;
-
-	public ManagerMainPanel(User frame) {
-		setLayout(new BorderLayout());
-
-		JPanel sidebar = new JPanel();
-		sidebar.setLayout(new GridLayout(7, 1));
-		JButton btnAddLotPanel = new JButton("addLotPanel");
-		JButton btnGenerateManagerPanel = new JButton("GenerateManagerPanel");
-		JButton btnPanel3 = new JButton("Panel 3");
-		JButton btnPanel4 = new JButton("Panel 4");
-		JButton btnPanel5 = new JButton("Panel 5");
-		JButton btnPanel6 = new JButton("Panel 6");
-		JButton btnLogout = new JButton("Logout");
-
-		sidebar.add(btnAddLotPanel);
-		sidebar.add(btnGenerateManagerPanel);
-		sidebar.add(btnPanel3);
-		sidebar.add(btnPanel4);
-		sidebar.add(btnPanel5);
-		sidebar.add(btnPanel6);
-		sidebar.add(btnLogout);
-
-		cardLayout = new CardLayout();
-		panelContainer = new JPanel(cardLayout);
-		panelContainer.add(new addLotPanel(frame), "addLotPanel");
-		panelContainer.add(new GenerateManagerPanel(frame), "GenerateManagerPanel");
-		panelContainer.add(new Panel3(), "Panel3");
-		panelContainer.add(new Panel4(), "Panel4");
-		panelContainer.add(new Panel5(), "Panel5");
-		panelContainer.add(new Panel6(), "Panel6");
-
-		btnAddLotPanel.addActionListener(e -> cardLayout.show(panelContainer, "addLotPanel"));
-		btnGenerateManagerPanel.addActionListener(e -> cardLayout.show(panelContainer, "GenerateManagerPanel"));
-		btnPanel3.addActionListener(e -> cardLayout.show(panelContainer, "Panel3"));
-		btnPanel4.addActionListener(e -> cardLayout.show(panelContainer, "Panel4"));
-		btnPanel5.addActionListener(e -> cardLayout.show(panelContainer, "Panel5"));
-		btnPanel6.addActionListener(e -> cardLayout.show(panelContainer, "Panel6"));
-		btnLogout.addActionListener(e -> frame.switchTo("ManagerLogin"));
-
-		add(sidebar, BorderLayout.WEST);
-		add(panelContainer, BorderLayout.CENTER);
-	}
-}
-
-//	add Lot Panel
-class addLotPanel extends JPanel {
-	private JTextField nameField;
-    private JTextField locationField;
-    private JComboBox<String> statusComboBox;
-    
-	public addLotPanel(User frame) {
-		
-		Reader reader = null;
-		Path parkingLotPath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
-		try {
-			reader = Files.newBufferedReader(parkingLotPath);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		CSVReader lotsFile = new CSVReader(reader);
-		
-		setLayout(new GridLayout(4, 2, 5, 5));
-
-        // Name Label & Field
-        add(new JLabel("Name:"));
-        nameField = new JTextField(15);
-        add(nameField);
-
-        // Location Label & Field
-        add(new JLabel("Location:"));
-        locationField = new JTextField(15);
-        add(locationField);
-
-        // Status Selection (Enabled/Disabled)
-        add(new JLabel("Status:"));
-        String[] statusOptions = {"Enabled", "Disabled"};
-        statusComboBox = new JComboBox<>(statusOptions);
-        add(statusComboBox);
-
-        // Submit Button
-        JButton submitButton = new JButton("Submit");
-        add(submitButton);
-
-        // Label to display stored values
-        JLabel resultLabel = new JLabel("");
-        add(resultLabel);
-
-        // Button Click Event
-        submitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-            	// Write to CSV
-            	Path parkingLotPath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
-				boolean parkingLotFileExists = Files.exists(parkingLotPath);
-				if(nameField.getText().equals(null) || locationField.getText().equals(null)) {
-					JOptionPane.showMessageDialog(addLotPanel.this, "Please fill name/location");
-				} else {
-					try (CSVWriter writer = new CSVWriter(new FileWriter(parkingLotPath.toFile(), true))) {
-						String date = java.time.LocalDate.now().toString();
-						String[] row = new String[104]; // Adjust array size based on column count
-		                
-		                row[0] = generateLotId();         // ID
-		                row[1] = nameField.getText();              // Name
-		                row[2] = locationField.getText();
-		                row[3] = ((String) statusComboBox.getSelectedItem()).equals("Enabled") ? "Y" : "N";
-		                for(int i = 4; i < 100+4; i++) {
-		                	row[i] = ((String) statusComboBox.getSelectedItem()).equals("Enabled") ? "Y" : "N";
-		                }
-						writer.writeNext(row);
-						JOptionPane.showMessageDialog(addLotPanel.this, "New lot successfully added!");
-		
-					} catch (IOException e1) {
-						// TODO Auto-generated catch block
-						JOptionPane.showMessageDialog(addLotPanel.this, "Adding a parking failed!");
-						e1.printStackTrace();
-					}
-				}
-				
-            }
-        });
-    }
 	
-	private String generateLotId() {
-		int lastId = 0;
-		try {
-			Path filePath = Paths.get("src", "system", "resources", "parkinglot.csv").toAbsolutePath();
-			if (Files.exists(filePath)) {
-				try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
-					String line;
-					boolean isHeader = true;
-					while ((line = reader.readLine()) != null) {
-						if (isHeader) {
-							isHeader = false;
-							continue;
-						}
-						String[] columns = line.split(",");
-						try {
-							int parsedId = Integer.parseInt(columns[0]);
-							lastId = Math.max(lastId, parsedId);
-						} catch (NumberFormatException ex) {
-							continue;
-						}
-					}
-				}
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return String.valueOf(lastId + 1);
-	}
-		
 }
 
-//	Generate Manager Panel
-class GenerateManagerPanel extends JPanel {
-    public GenerateManagerPanel(User frame) {
-        // Setting the layout to center the button
-        setLayout(new BorderLayout());
 
-        // Create the "Generate Manager" button
-        JButton generateButton = new JButton("Generate Manager");
 
-        // Add the button to the panel
-        add(generateButton, BorderLayout.CENTER);
-        
-        
-        // Add ActionListener to handle button click
-        generateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Show message after button click
-            	if(frame.manager instanceof SuperManager) {
-            		String[] info = ((SuperManager) frame.manager).generateManager();
-            		JOptionPane.showMessageDialog(GenerateManagerPanel.this, "Manager Generated!\n" + "Name: " + info[0] + "\n" + "Password: " + info[1]);
-            	} else {
-            		JOptionPane.showMessageDialog(GenerateManagerPanel.this, "Unauthorized!");
-            	}
-                
-            }
-        });
-    }
 
-}
-class Panel1 extends JPanel {
-	public Panel1() {
-		setBackground(Color.RED);
-		add(new JLabel("This is Panel 1"));
-	}
-}
-class Panel2 extends JPanel {
-	public Panel2() {
-		setBackground(Color.GREEN);
-		add(new JLabel("This is Panel 2"));
-	}
-}
-class Panel3 extends JPanel {
-	public Panel3() {
-		setBackground(Color.BLUE);
-		add(new JLabel("This is Panel 3"));
-	}
-}
-class Panel4 extends JPanel {
-	public Panel4() {
-		setBackground(Color.YELLOW);
-		add(new JLabel("This is Panel 4"));
-	}
-}
-class Panel5 extends JPanel {
-	public Panel5() {
-		setBackground(Color.PINK);
-		add(new JLabel("This is Panel 5"));
-	}
-}
-class Panel6 extends JPanel {
-	public Panel6() {
-		setBackground(Color.ORANGE);
-		add(new JLabel("This is Panel 6"));
-	}
-}

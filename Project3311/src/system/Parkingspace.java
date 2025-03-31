@@ -8,6 +8,13 @@ public class Parkingspace {
 	private Sensor sensor;
 	private Booking booking;
 	private boolean isEnabled;
+	public boolean isEnabled() {
+		return isEnabled;
+	}
+	public void setEnabled(boolean isEnabled) {
+		this.isEnabled = isEnabled;
+	}
+	
 	private HashMap<Integer, String> occupied;
 	
 	public Parkingspace(int id, boolean isEnabled) {

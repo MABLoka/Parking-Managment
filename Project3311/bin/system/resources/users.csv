@@ -1,1 +1,4 @@
-﻿name,id,email,password,unique_id
+﻿name,id,email,password,unique_id,type
+m,1,m@test.com,1qaz2wsxE@,123456,STUDENT
+mab,2,mab@test.com,1qaz2wsxE@,,VISITOR
+"mab2","3","mab2@test.com","1qaz2wsxE@","1234","STUDENT"

@@ -11,7 +11,15 @@ public class Parkinglot {
     private ParkingLotState currentState;
     private boolean state;
 
-    public Parkinglot(int id, String name, String location, boolean state,int numSpaces) {
+    public boolean isState() {
+		return state;
+	}
+
+	public void setState(boolean state) {
+		this.state = state;
+	}
+
+	public Parkinglot(int id, String name, String location, boolean state,int numSpaces) {
         this.id = id;
         this.name = name;
         this.location = location;
@@ -90,6 +98,7 @@ public class Parkinglot {
         }
         return available;
     }
+    
 
     public void checkAvailability() {
         currentState.checkAvailability(this);

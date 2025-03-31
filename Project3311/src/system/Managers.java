@@ -15,30 +15,6 @@ public abstract class Managers {
     String name;
     String email;
     static String CSV_FILE = "src/system/resources/managers.csv";
-    
-    protected void verify(Client client) {
-        // Implementation for verification
-    }
-
-    protected void addLot() {
-        // Implementation for adding a lot
-    }
-
-    protected void enableLot() {
-        // Implementation for enabling a lot
-    }
-
-    protected void disableLot() {
-        // Implementation for disabling a lot
-    }
-
-    protected void enableSpace() {
-        // Implementation for enabling a space
-    }
-
-    protected void disableSpace() {
-        // Implementation for disabling a space
-    }
 }
 
 // Singleton implementation for supermanager
@@ -106,7 +82,12 @@ class SuperManager extends Managers {
 	                        isHeader = false;
 	                        continue;
 	                    }
+	                    
+	                    line = line.trim();  // Remove leading/trailing spaces
 
+					    if (line.isEmpty()) {
+					        break; // Skip completely empty lines
+					    }
 	                    String[] columns = line.split(",");
 	                    try {
 	                        int id = Integer.parseInt(columns[1]); // Now the ID is in the second column
@@ -118,6 +99,14 @@ class SuperManager extends Managers {
 	                }
 	            }
 	        }
+	        else {
+	        	try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath.toFile(), true))) {
+	        		writer.write("name,id,email,password,Super\n");
+	        		writer.write("admin,0,admin@test.com,admin,Y\n");
+	            }
+					
+				
+	        }
 	    } catch (IOException e) {
 	        e.printStackTrace();
 	    }
@@ -128,18 +117,37 @@ class SuperManager extends Managers {
     
     // Function to generate a random 6-letter password
     public static String generatePassword() {
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    	String uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lowercase = "abcdefghijklmnopqrstuvwxyz";
+        String numbers = "0123456789";
+        String special = "!@#$%^&*()-_+=<>?/{}[]";
         Random random = new Random();
-        StringBuilder password = new StringBuilder(6);
+        StringBuilder password = new StringBuilder(12);  // Increased password length to 12
 
-        // Generate a 6-letter random password
-        for (int i = 0; i < 6; i++) {
-            int index = random.nextInt(characters.length());
-            password.append(characters.charAt(index));
+        // Ensure password contains at least one character from each set
+        password.append(uppercase.charAt(random.nextInt(uppercase.length())));
+        password.append(lowercase.charAt(random.nextInt(lowercase.length())));
+        password.append(numbers.charAt(random.nextInt(numbers.length())));
+        password.append(special.charAt(random.nextInt(special.length())));
+
+        // Fill the rest of the password with random characters from all sets
+        String allCharacters = uppercase + lowercase + numbers + special;
+        for (int i = 4; i < 12; i++) {
+            int index = random.nextInt(allCharacters.length());
+            password.append(allCharacters.charAt(index));
         }
 
-        return password.toString();
+        // Shuffle the password to avoid predictable patterns
+        StringBuilder shuffledPassword = new StringBuilder();
+        while (password.length() > 0) {
+            int index = random.nextInt(password.length());
+            shuffledPassword.append(password.charAt(index));
+            password.deleteCharAt(index);
+        }
+
+        return shuffledPassword.toString();
     }
+    
 }
 
 class Manager extends Managers {
