@@ -8,6 +8,8 @@ public class Parkingspace {
 	private Sensor sensor;
 	private Booking booking;
 	private boolean isEnabled;
+	private HashMap<Integer, String> occupied;
+	
 	public boolean isEnabled() {
 		return isEnabled;
 	}
@@ -15,12 +17,10 @@ public class Parkingspace {
 		this.isEnabled = isEnabled;
 	}
 	
-	private HashMap<Integer, String> occupied;
-	
 	public Parkingspace(int id, boolean isEnabled) {
 		this.id = id;
 		this.lot = lot;
-		this.sensor = new Sensor(this);
+
 		this.isEnabled = isEnabled;
 		// Initialize the occupied map (key: time, value: licensePlate).
 		this.occupied = new HashMap<>();

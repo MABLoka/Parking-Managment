@@ -5,7 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.*;
 
 import javax.swing.JOptionPane;
 
@@ -15,12 +15,21 @@ import com.opencsv.exceptions.CsvValidationException;
 
 public class Sensor {
     private Parkingspace parkingSpace;
-    private Parkingspace lot;
+    private Parkinglot lot;
     private boolean activity;
     private String state;
 	private ArrayList<Parkinglot> lots;
 
-    public Sensor(Parkingspace parkingSpace) {
+    public Sensor(Parkingspace parkingSpace, int lotId) {
+    	
+    	try {
+			this.lots = loadCSVData();
+		} catch (CsvValidationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	this.lot = lots.get(lotId);
+    	
         this.parkingSpace = parkingSpace;
         this.activity = false;
         this.state = "Idle";
@@ -30,15 +39,17 @@ public class Sensor {
         System.out.println("Navigation info for Parking Space " + parkingSpace.getId());
     }
 
-    public void update(int time) {
+    public void update(int time) throws CsvValidationException {
         // Simulate an update that checks occupancy at the given time.
         String occupant = checkOccupied(time);
         if (occupant != null) {
         	changeSpaceStatus(false, lot.getId(), parkingSpace.getId());
+        	updateFile(parkingSpace.getId());
             System.out.println("Parking Space " + parkingSpace.getId() + " is occupied by " + occupant);
         } else {
             System.out.println("Parking Space " + parkingSpace.getId() + " is available.");
         }
+        
     }
 
     public String checkOccupied(int time) {
