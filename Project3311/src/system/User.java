@@ -47,7 +47,7 @@ public class User extends JFrame implements LoginObserver{
     }
 
 	public User() throws FileNotFoundException {
-		setTitle("Swing Multi-Panel Template");
+		setTitle("Parking Managment");
 		setSize(600, 400);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
